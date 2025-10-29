@@ -8,27 +8,74 @@ format: typst
 ## **Part 0: libraries**
 
 ```{r}
-
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthhires)
+library(tidyverse)
+library(stringr)
 ```
 
 ## **Part 1:** **Defining Research Question**
 
-Chosen Question:
+Chosen Question: What type of renewable energy is most dominant in each state in 2023?
 
 ## **Part 2: Data Preparation and Cleaning**
 
 ```{r}
-
+renew_use_2023 <- read_csv("./data/renew-use-2023.csv")
+renew_use_2023 <- renew_use_2023 |>
+    rename(state = State, energy_source = Energy_Source, renew_use = Renewable_Use_2023) |>
+    mutate(renewable_unit = str_extract(renew_use, "\\b[MGk]Wh\\b"), renew_use = as.numeric(str_extract(renew_use, "\\d+\\.?\\d*")))
+head(renew_use_2023)
 ```
 
 ## **Part 3: Joining / Pivoting Datasets for Analysis**
 
 ```{r}
-
+dominant_renew_2023 <- renew_use_2023 |>
+    group_by(state) |>
+    slice_max(order_by = renew_use, n = 1, with_ties = FALSE) |>
+    ungroup()
+head(dominant_renew_2023)
 ```
 
 ## **Part 4: Mapping Visualization**
 
 ```{r}
+us_states <- ne_states(
+  country = "United States of America",
+  returnclass = "sf") |>
+  filter(!name_en %in% c("American Samoa","Guam","Northern Mariana Islands","Puerto Rico","United States Virgin Islands")) |>
+  mutate(state_key = tolower(name_en))
+
+state_key <- tibble(
+  state_full = tolower(state.name),
+  state_abbr = tolower(state.abb))
+
+dom_2023_std <- dominant_renew_2023 |>
+  mutate(state_raw = tolower(state)) |>
+  left_join(state_key, by = c("state_raw" = "state_abbr")) |>
+  mutate(state_key = coalesce(state_full, state_raw)) |>
+  select(-state_full)
+
+states_joined <- us_states |>
+  left_join(dom_2023_std, by = "state_key")
+
+ggplot() +
+  geom_sf(data = states_joined, aes(fill = energy_source), color = "white", linewidth = 0.2) + scale_fill_brewer(palette = "Set3", na.value = "grey90") +
+  theme_minimal() +
+  theme(legend.position = "bottom",          # move legend below map
+    legend.key.height = unit(0.4, "cm"), # shrink legend boxes
+    legend.text = element_text(size = 8),
+    panel.background = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank())+
+  labs(
+    title = "Dominant Renewable Energy Source by State (2023)",
+    fill = "Energy Source")
 
 ```
+
+## **Part 5: Analysis**
+I created a map where each US State is color coded to its most dominant form of renewable energy in 2023. I noticed that renewable energy is dominant by region with a lot of biomass being used in the east and hydropwer used in the north. 

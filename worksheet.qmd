@@ -5,6 +5,11 @@ format: typst
 # Lab 4 Worksheet - Practice
 
 * add something about loading a csv and having to use
+library(tidyverse) 
+renew_use_2023 <- read_csv("./data/ev-power-mollyurfalian/renew-use-2023.csv")
+renew_use_2022 <- read_csv("./data/ev-power-mollyurfalian/renew-use-2022.csv")
+renew_use_2021 <- read_csv("./data/ev-power-mollyurfalian/renew-use-2021.csv")
+
 # Split the one column into four
 energy_raw <- separate(
   energy_raw,
@@ -25,13 +30,14 @@ energy_sources <- c("Solar (MWh)", "Wind (GWh)", "Coal (MWh)", "Hydro (kWh)")
 a.  Use str_detect() to identify all energy sources that contain the substring "Wind" or "Hydro" (hint: use the \| operator in regex).
 
 ```{r}
-
+renew_use_2021 |> 
+  str_detect(Energy_Source, "Wind|Hydro")
 ```
 
 b.  Extract the unit type (e.g., MWh, GWh, kWh) using str_extract(). Make sure your pattern handles extra spaces or hyphens.
 
 ```{r}
-
+str_extract("Wh#")
 ```
 
 c.  Clean the names to keep only the energy source name, trimming whitespace and removing parentheses.
